@@ -11,18 +11,19 @@ declare ( strict_types = 1 );
 namespace Nouvu\Shell;
 
 use Nouvu;
+use Nouvu\Config\Config;
 use WindowsEvent\Directory\Shell AS S;
 
 class WindowsEvent
 {
 	private array $cache;
-	private array $config;
+	private Config $config;
 	
-	public function __construct ( Nouvu\Config\Config $config )
+	public function __construct ( Config $config )
 	{
 		if ( PHP_OS_FAMILY != 'Windows' )
 		{
-			echo 'WindowsEvent: Requires OS Windows' . PHP_EOL;
+			throw new \Error( 'WindowsEvent: Requires OS Windows' );
 		}
 		
 		$this -> config = $config;
@@ -35,17 +36,14 @@ class WindowsEvent
 	
 	private function cache( string $name ): string
 	{
-		$string = $this -> config -> get( $name );
-		
-		return ( $this -> cache[$name] ??= static function () use ( string $string ): string
-		{
-			return file_get_contents ( $string );
-		} )();
+		return $this -> cache[$name] ??= file_get_contents ( $this -> config -> get( $name ) );
 	}
 	
 	public function saveScreenshot( int $x, int $y, int $width, int $height, string $file = null ): ?string
 	{
-		return $this -> shell( strtr ( $this -> cache( $file ? S\Screen\File :: class : S\Screen\String :: class ), [
+		$string = $this -> cache( $file ? 'WindowsEvent.Directory.Shell.Screen.File' : 'WindowsEvent.Directory.Shell.Screen.String' );
+		
+		return $this -> shell( strtr ( $string, [
 			'{{x}}' => $x,
 			'{{y}}' => $y,
 			'{{width}}' => $width ?: 1,
@@ -56,7 +54,7 @@ class WindowsEvent
 	
 	public function cursorPosition( int $x, int $y ): void
 	{
-		$this -> shell( strtr ( $this -> cache( S\Mouse\cursorPosition :: class ), [
+		$this -> shell( strtr ( $this -> cache( 'WindowsEvent.Directory.Shell.Mouse.cursorPosition' ), [
 			'{{x}}' => $x,
 			'{{y}}' => $y,
 		] ) );
@@ -64,6 +62,6 @@ class WindowsEvent
 	
 	public function mouseLClick(): void
 	{
-		$this -> shell( $this -> cache( S\Mouse\mouseLClick :: class ) );
+		$this -> shell( $this -> cache( 'WindowsEvent.Directory.Shell.Mouse.mouseLClick' ) );
 	}
 }
